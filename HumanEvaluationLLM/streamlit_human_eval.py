@@ -60,7 +60,7 @@ else:
     responses = {model: [] for model in models}
 
     # Load the new responses from the CSV file
-    file_path = 'responses_doc.csv'
+    file_path = 'responses_doc_new.csv'
     data = pd.read_csv(file_path)
     model_count = {model: 0 for model in models}  # Dictionary to track occurrences of each model
 
