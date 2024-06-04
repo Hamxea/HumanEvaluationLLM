@@ -54,7 +54,7 @@ else:
     if st.session_state['current_model_index'] == 0:
         st.sidebar.markdown(
             "<div style='background-color: #ffcccc; padding: 10px; border-radius: 5px;'>"
-            "<strong>Please enter your full name or initials:</strong>"
+            "<strong>Please enter your full name, initials, or chosen identifier (for anonymity):</strong>"
             "</div>",
             unsafe_allow_html=True
         )
