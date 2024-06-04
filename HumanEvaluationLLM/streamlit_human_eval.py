@@ -8,6 +8,8 @@ def init_db():
         conn.execute('''
             CREATE TABLE IF NOT EXISTS feedback (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                expert TEXT,
                 model TEXT,
                 prompt_index INTEGER,
                 prompt_detail TEXT,
@@ -20,30 +22,60 @@ def init_db():
             conn.execute('SELECT prompt_detail FROM feedback LIMIT 1')
         except sqlite3.OperationalError:
             conn.execute('ALTER TABLE feedback ADD COLUMN prompt_detail TEXT')
-            
+
 def get_connection():
     return sqlite3.connect('activity_model_feedback.db')
 
 init_db()
 st.set_page_config(layout="wide", page_title="Model Evaluation Interface")
 
+models = ['Llama-2 13B', 'Mixtral 8*7B', 'LLama-3 8B', 'Mistral 7B v2', 'StableBeluga 7B']
+
 if 'initialized' not in st.session_state:
     st.session_state['initialized'] = True
 if 'current_model_index' not in st.session_state:
     st.session_state['current_model_index'] = 0
 if 'comparisons' not in st.session_state:
-    st.session_state['comparisons'] = [['Select an option']*3 for _ in range(5)]
+    st.session_state['comparisons'] = [['Select an option']*3 for _ in range(len(models))]
 if 'feedbacks' not in st.session_state:
-    st.session_state['feedbacks'] = [['']*3 for _ in range(5)]
+    st.session_state['feedbacks'] = [['']*3 for _ in range(len(models))]
 if 'submission_complete' not in st.session_state:
     st.session_state['submission_complete'] = False  # Track if the submission has been completed
-
-models = ['Llama 7B', 'Llama 13B', 'Mistral 7B v1', 'Mistral 7B v2', 'StableBeluga 7B']
+if 'user_name' not in st.session_state:
+    st.session_state['user_name'] = ''  # Store the user's name
+if 'expert_status' not in st.session_state:
+    st.session_state['expert_status'] = 'Select an option'  # Store the user's expert status
 
 # Checking if the submission has been completed
 if st.session_state['submission_complete']:
     st.success("Thank you for completing all evaluations!")
 else:
+    # Input for user's name and expert status on the first page using sidebar
+    if st.session_state['current_model_index'] == 0:
+        st.sidebar.markdown(
+            "<div style='background-color: #ffcccc; padding: 10px; border-radius: 5px;'>"
+            "<strong>Please enter your full name or initials:</strong>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        user_name = st.sidebar.text_input("", key='user_name_input')
+
+        st.sidebar.markdown(
+            "<div style='background-color: #ffcccc; padding: 10px; border-radius: 5px;'>"
+            "<strong>Are you an expert in the field of Activity or Cardiac Exercise?</strong>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        expert_status = st.sidebar.selectbox("", ["Select an option", "Yes", "No"], key='expert_status_input')
+
+        if user_name and expert_status != "Select an option":
+            if st.sidebar.button('Submit'):
+                st.session_state['user_name'] = user_name
+                st.session_state['expert_status'] = expert_status
+        else:
+            st.warning("Please fill in your full name and select your expert status before proceeding.")
+            st.stop()
+
     # Continue with the evaluation process
     global_prompts = [
         "Is high intensity interval training only for healthy individuals?",
@@ -88,7 +120,7 @@ else:
                 st.markdown(f"<h4 style='text-align: center; font-weight: bold;'>Response (B)</h4>", unsafe_allow_html=True)
                 st.write(response_pair[1])
 
-            comparison_options = ["Select an option", "A is better", "B is better", "Neither is better", "A and B are the same"]
+            comparison_options = ["Select an option", "A is better", "B is better", "Neither is better"]
             st.markdown(f"<h5 style='font-weight: bold; margin-bottom: 0px;'>Choose the best response:</h5>", unsafe_allow_html=True)
             selected_option = st.radio(
                 "", comparison_options, index=0, key=f"comparison_{i}_{models[st.session_state['current_model_index']]}"
@@ -123,8 +155,8 @@ else:
                     for idx, model in enumerate(models):
                         for i in range(3):
                             conn.execute(
-                                'INSERT INTO feedback (model, prompt_index, prompt_detail, comparison, feedback) VALUES (?, ?, ?, ?, ?)',
-                                (model, i+1, global_prompts[i], st.session_state['comparisons'][idx][i], st.session_state['feedbacks'][idx][i])
+                                'INSERT INTO feedback (name, expert, model, prompt_index, prompt_detail, comparison, feedback) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                                (st.session_state['user_name'], st.session_state['expert_status'], model, i+1, global_prompts[i], st.session_state['comparisons'][idx][i], st.session_state['feedbacks'][idx][i])
                             )
                 conn.commit()
                 st.session_state['submission_complete'] = True  # Set submission complete to True
