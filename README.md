@@ -2,8 +2,8 @@
 
 # Evaluating Activity Models
 
-#### Models Interface Trial: https://cergdigitaltwinchat.idi.ntnu.no/
-#### Models Feedback Evaluation: https://humanevaluationllm.onrender.com/ 
+##### Models Interface Trial: https://cergdigitaltwinchat.idi.ntnu.no/
+##### Models Feedback Evaluation: https://humanevaluationllm.onrender.com/ 
 
 ## Project Description:
 Welcome to the Human Evaluation of Large Language Models platform, designed to evaluate the performance of advanced AI models fine-tuned with domain-specific data. Our focus is on enhancing the capabilities of models like LLaMA, Mistral, and StableBeluga using specialized datasets from the Cardiac Exercise Research Group (CERG) at NTNU. This fine-tuning process aims to improve the models' accuracy and relevance in generating responses related to activity-health, fitness, and well-being. Compare outputs from various models and gain insights into their effectiveness in the healthcare sector.
