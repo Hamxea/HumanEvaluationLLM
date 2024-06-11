@@ -75,7 +75,7 @@ def send_email(to_email, code):
     email_user = "hamzasharoon@gmail.com"  # Replace with your email
     email_password = "cxvs nzhz njug vncy"  # Replace with your email password
 
-    subject_user = "Your Evaluation Code"
+    subject_user = "Your Evaluation Activity Models Code"
     html_body = f"Your code to continue the evaluation later is: {code}\nPlease don't forget this code."
     html_body = html_body.replace('\n', '<br>')
 
