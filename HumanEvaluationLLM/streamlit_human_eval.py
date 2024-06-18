@@ -102,7 +102,7 @@ def send_email(to_email, code):
 
 # Generate a random code for the user
 def generate_code():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 # Fetch user data from the database based on the code
 def fetch_user_data(code):
@@ -363,7 +363,7 @@ else:
             "</div>",
             unsafe_allow_html=True
         )
-        expert_status = st.sidebar.selectbox("", ["Select an option", "Yes", "No"], key='expert_status_input')
+        expert_status = st.sidebar.selectbox("", ["Select an option", "Yes", "Some Domain", "No"], key='expert_status_input')
 
         if user_email and expert_status != "Select an option":
             if st.sidebar.button('Submit'):
