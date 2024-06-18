@@ -363,7 +363,7 @@ else:
             "</div>",
             unsafe_allow_html=True
         )
-        expert_status = st.sidebar.selectbox("", ["Select an option", "No, I have no expertise.", "Somewhat, I have some knowledge." "Yes, I am an expert."], key='expert_status_input')
+        expert_status = st.sidebar.selectbox("", ["Select an option", "No, I have no expertise.", "Somewhat, I have some knowledge.", "Yes, I am an expert."], key='expert_status_input')
 
         if user_email and expert_status != "Select an option":
             if st.sidebar.button('Submit'):
