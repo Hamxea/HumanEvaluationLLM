@@ -257,7 +257,7 @@ else:
             if not user_data.empty:
                 st.session_state['user_code'] = resume_code
                 st.session_state['expert_status'] = user_data['expert'].iloc[0]
-                st.session_state['current_model_index'] = int(user_data['model_index'].max())
+                st.session_state['current_model_index'] = int(user_data['model_index'].max()) + 1
                 st.session_state['user_name'] = user_data['name'].iloc[0]
                 for i, model in enumerate(models):
                     model_data = user_data[user_data['model_index'] == i]
