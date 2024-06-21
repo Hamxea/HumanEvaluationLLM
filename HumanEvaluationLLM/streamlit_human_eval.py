@@ -9,10 +9,15 @@ import string
 from datetime import datetime
 import logging
 import csv
+import os
 
 # Set up logging
 logging.basicConfig(filename='evaluation_log.txt', level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
+
+# Load environment variables
+EMAIL_USER = os.getenv("EMAIL_USER", "hamzasharoon@gmail.com")  # Replace with your email
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "cxvs nzhz njug vncy")  # Replace with your email password
 
 # Initialize the database
 def init_db():
@@ -37,34 +42,12 @@ def init_db():
             )
         ''')
         # Ensure all required columns exist
-        try:
-            conn.execute('SELECT code FROM feedback LIMIT 1')
-        except sqlite3.OperationalError:
-            conn.execute('ALTER TABLE feedback ADD COLUMN code TEXT')
-        try:
-            conn.execute('SELECT model_name FROM feedback LIMIT 1')
-        except sqlite3.OperationalError:
-            conn.execute('ALTER TABLE feedback ADD COLUMN model_name TEXT')
-        try:
-            conn.execute('SELECT model_index FROM feedback LIMIT 1')
-        except sqlite3.OperationalError:
-            conn.execute('ALTER TABLE feedback ADD COLUMN model_index INTEGER')
-        try:
-            conn.execute('SELECT satisfaction FROM feedback LIMIT 1')
-        except sqlite3.OperationalError:
-            conn.execute('ALTER TABLE feedback ADD COLUMN satisfaction INTEGER')
-        try:
-            conn.execute('SELECT response_a FROM feedback LIMIT 1')
-        except sqlite3.OperationalError:
-            conn.execute('ALTER TABLE feedback ADD COLUMN response_a TEXT')
-        try:
-            conn.execute('SELECT response_b FROM feedback LIMIT 1')
-        except sqlite3.OperationalError:
-            conn.execute('ALTER TABLE feedback ADD COLUMN response_b TEXT')
-        try:
-            conn.execute('SELECT timestamp FROM feedback LIMIT 1')
-        except sqlite3.OperationalError:
-            conn.execute('ALTER TABLE feedback ADD COLUMN timestamp DATETIME DEFAULT CURRENT_TIMESTAMP')
+        columns = ["code", "model_name", "model_index", "satisfaction", "response_a", "response_b", "timestamp"]
+        for column in columns:
+            try:
+                conn.execute(f'SELECT {column} FROM feedback LIMIT 1')
+            except sqlite3.OperationalError:
+                conn.execute(f'ALTER TABLE feedback ADD COLUMN {column} TEXT')
 
 # Get a connection to the database
 def get_connection():
@@ -72,27 +55,24 @@ def get_connection():
 
 # Send an email with the evaluation code
 def send_email(to_email, code):
-    email_user = "hamzasharoon@gmail.com"  # Replace with your email
-    email_password = "cxvs nzhz njug vncy"  # Replace with your email password
-
-    subject_user = "Your Evaluation Activity Models Code"
+    subject_user = "Your Evaluation Code"
     html_body = f"Your code to continue the evaluation later is: {code}\nPlease don't forget this code."
     html_body = html_body.replace('\n', '<br>')
 
     try:
         server = sm.SMTP("smtp.gmail.com", 587)
         server.starttls()
-        server.login(email_user, email_password)
+        server.login(EMAIL_USER, EMAIL_PASSWORD)
 
         message = MIMEMultipart("alternative")
         message['Subject'] = subject_user
-        message['From'] = email_user
+        message['From'] = EMAIL_USER
         message['To'] = to_email
 
         html = MIMEText(html_body, "html")
         message.attach(html)
 
-        server.sendmail(email_user, to_email, message.as_string())
+        server.sendmail(EMAIL_USER, to_email, message.as_string())
         server.quit()
         logging.info(f"Sent email to {to_email} with code {code}")
         return True
@@ -107,48 +87,51 @@ def generate_code():
 # Fetch user data from the database based on the code
 def fetch_user_data(code):
     conn = get_connection()
-    user_data = pd.read_sql_query(f"SELECT * FROM feedback WHERE code='{code}'", conn)
+    user_data = pd.read_sql_query(f"SELECT * FROM feedback WHERE code=?", conn, params=(code,))
+    conn.close()
     return user_data
 
 # Save or update user responses in the database and log to CSV
 def save_responses(model_name, model_index, comparisons, feedbacks, satisfaction_scores, global_prompts, response_assignments):
     conn = get_connection()
-    with conn:
-        for i in range(3):
-            response_a, response_b = response_assignments[i]
-            prompt_index = i + 1
-            cursor = conn.execute(
-                'SELECT id FROM feedback WHERE code = ? AND model_name = ? AND model_index = ? AND prompt_index = ?',
-                (st.session_state['user_code'], model_name, model_index, prompt_index)
-            )
-            row = cursor.fetchone()
-            if row:
-                conn.execute(
-                    'UPDATE feedback SET comparison = ?, feedback = ?, satisfaction = ?, response_a = ?, response_b = ?, timestamp = ? WHERE id = ?',
-                    (comparisons[i], feedbacks[i], satisfaction_scores[i], response_a, response_b, datetime.now(), row[0])
+    try:
+        with conn:
+            for i in range(3):
+                response_a, response_b = response_assignments[i]
+                prompt_index = i + 1
+                cursor = conn.execute(
+                    'SELECT id FROM feedback WHERE code = ? AND model_name = ? AND model_index = ? AND prompt_index = ?',
+                    (st.session_state['user_code'], model_name, model_index, prompt_index)
                 )
-                action = 'UPDATED'
-            else:
-                conn.execute(
-                    'INSERT INTO feedback (name, code, expert, model_name, model_index, prompt_index, prompt_detail, comparison, feedback, satisfaction, response_a, response_b, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    (st.session_state['user_name'], st.session_state['user_code'], st.session_state['expert_status'], model_name, model_index, prompt_index, global_prompts[i], comparisons[i], feedbacks[i], satisfaction_scores[i], response_a, response_b, datetime.now())
-                )
-                action = 'INSERTED'
-            
-            # Log the action
-            logging.info(f"{action} feedback for user {st.session_state['user_code']} - Model: {model_name}, Prompt: {prompt_index}")
-            
-            # Log to CSV
-            with open('feedback_log.csv', mode='a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow([datetime.now(), st.session_state['user_name'], st.session_state['user_code'], st.session_state['expert_status'], model_name, model_index, prompt_index, global_prompts[i], comparisons[i], feedbacks[i], satisfaction_scores[i], response_a, response_b, action])
-    
-    conn.commit()
+                row = cursor.fetchone()
+                if row:
+                    conn.execute(
+                        'UPDATE feedback SET comparison = ?, feedback = ?, satisfaction = ?, response_a = ?, response_b = ?, timestamp = ? WHERE id = ?',
+                        (comparisons[i], feedbacks[i], satisfaction_scores[i], response_a, response_b, datetime.now(), row[0])
+                    )
+                    action = 'UPDATED'
+                else:
+                    conn.execute(
+                        'INSERT INTO feedback (name, code, expert, model_name, model_index, prompt_index, prompt_detail, comparison, feedback, satisfaction, response_a, response_b, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        (st.session_state['user_name'], st.session_state['user_code'], st.session_state['expert_status'], model_name, model_index, prompt_index, global_prompts[i], comparisons[i], feedbacks[i], satisfaction_scores[i], response_a, response_b, datetime.now())
+                    )
+                    action = 'INSERTED'
+                
+                # Log the action
+                logging.info(f"{action} feedback for user {st.session_state['user_code']} - Model: {model_name}, Prompt: {prompt_index}")
+                
+                # Log to CSV
+                with open('feedback_log.csv', mode='a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow([datetime.now(), st.session_state['user_name'], st.session_state['user_code'], st.session_state['expert_status'], model_name, model_index, prompt_index, global_prompts[i], comparisons[i], feedbacks[i], satisfaction_scores[i], response_a, response_b, action])
+    finally:
+        conn.close()
 
 # Load previous responses from the database
 def load_previous_responses(code, model_index):
     conn = get_connection()
-    user_data = pd.read_sql_query(f"SELECT * FROM feedback WHERE code='{code}' AND model_index={model_index}", conn)
+    user_data = pd.read_sql_query(f"SELECT * FROM feedback WHERE code=? AND model_index=?", conn, params=(code, model_index))
+    conn.close()
     if not user_data.empty:
         for i in range(3):
             st.session_state['comparisons'][model_index][i] = user_data['comparison'].iloc[i]
@@ -308,7 +291,7 @@ else:
             "</div>",
             unsafe_allow_html=True
         )
-        expert_status = st.sidebar.selectbox("", ["Select an option", "Yes", "No"], key='expert_status_input_invalid')
+        expert_status = st.sidebar.selectbox("", ["Select an option", "No, I have no expertise.", "Somewhat, I have some knowledge.", "Yes, I am an expert."], key='expert_status_input_invalid')
 
         if user_email and expert_status != "Select an option":
             if st.sidebar.button('Generate New Code'):
@@ -378,14 +361,7 @@ else:
                     st.session_state['generated_code'] = user_code
                     st.session_state['display_code_message'] = True
 
-                    # Save the code to the database
-                    conn = get_connection()
-                    with conn:
-                        conn.execute(
-                            'INSERT INTO feedback (name, code, expert, model_name, model_index, prompt_index, prompt_detail, comparison, feedback, satisfaction, response_a, response_b, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                            (st.session_state['user_name'], user_code, expert_status, models[st.session_state['current_model_index']], st.session_state['current_model_index'], None, '', '', '', 'Please enter your chosen response rating satisfaction', '', '', datetime.now())
-                        )
-                    conn.commit()
+                    # Do not save the code to the database here
                     st.session_state['submitted'] = True
                     st.session_state['email_failed'] = False  # Reset the email failed flag
                     st.experimental_rerun()
@@ -505,7 +481,7 @@ else:
             st.markdown(f"<h5 style='font-weight: bold;'>Provide additional feedback for this prompt (Optional):</h5>", unsafe_allow_html=True)
             st.session_state['feedbacks'][int(st.session_state['current_model_index'])][i] = st.text_area("", st.session_state['feedbacks'][int(st.session_state['current_model_index'])][i], key=feedback_key)
 
-        missing_satisfaction = [f'Prompt {i+1}' for i, satisfaction in enumerate(st.session_state['satisfaction'][int(st.session_state['current_model_index'])]) if satisfaction == "Please enter your chosen response rating satisfaction"]
+        missing_satisfaction = [f' Response Satisfaction Rating For Prompt {i+1}' for i, satisfaction in enumerate(st.session_state['satisfaction'][int(st.session_state['current_model_index'])]) if satisfaction == "Please enter your chosen response rating satisfaction"]
         if incomplete_prompts or missing_satisfaction:
             st.warning(f"Please complete all selections before proceeding. Missing selections for: {', '.join(incomplete_prompts + missing_satisfaction)}.")
             logging.warning(f"User {st.session_state['user_code']} has incomplete selections: {', '.join(incomplete_prompts + missing_satisfaction)}")
@@ -513,7 +489,6 @@ else:
         prev_button, next_button = st.columns(2)
         with prev_button:
             if st.button('Previous Model') and int(st.session_state['current_model_index']) > 0:
-                save_responses(models[int(st.session_state['current_model_index'])], int(st.session_state['current_model_index']), st.session_state['comparisons'][int(st.session_state['current_model_index'])], st.session_state['feedbacks'][int(st.session_state['current_model_index'])], st.session_state['satisfaction'][int(st.session_state['current_model_index'])], global_prompts, st.session_state['response_assignments'][int(st.session_state['current_model_index'])])
                 st.session_state['current_model_index'] = int(st.session_state['current_model_index']) - 1
                 load_previous_responses(st.session_state['user_code'], st.session_state['current_model_index'])
                 st.experimental_rerun()
