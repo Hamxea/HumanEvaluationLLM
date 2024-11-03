@@ -84,3 +84,15 @@ This interface ensures a structured and efficient evaluation process, capturing 
 Thank you for your participation! Your feedback is essential for improving AI models in the healthcare sector.
 
 **Note**: Ensure to replace placeholders for email credentials with actual values for the email functionality to work correctly.
+
+<img width="2056" alt="Screenshot 2024-11-03 at 12 54 07" src="https://github.com/user-attachments/assets/4e1a7d76-58bd-4cc5-a932-ba1bbe0226a7">
+<img width="2056" alt="Screenshot 2024-11-03 at 12 54 14" src="https://github.com/user-attachments/assets/a1420679-afa0-4c7c-a2d3-e94b07ac1c62">
+<img width="2056" alt="Screenshot 2024-11-03 at 12 54 36" src="https://github.com/user-attachments/assets/216bc29e-3b67-4ccf-a1c9-a0ad71446a93">
+<img width="2056" alt="Screenshot 2024-11-03 at 12 54 53" src="https://github.com/user-attachments/assets/01186d8a-9476-4cdd-b9b6-c3e00733f9f4">
+<img width="2056" alt="Screenshot 2024-11-03 at 12 55 06" src="https://github.com/user-attachments/assets/1b5cc4b6-85ee-4cf8-943e-f360444f74c4">
+
+
+
+
+
+
